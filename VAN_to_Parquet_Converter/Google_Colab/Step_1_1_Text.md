@@ -1,0 +1,2 @@
+# Step 1
+Run the code directly below. Navigate through the file selection menu to find the spreadsheet exported from VAN. It should be in "xls" format (**Important:** Remember to unzip the export first if it's still a zip file). Upload your file.

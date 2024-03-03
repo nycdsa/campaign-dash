@@ -1,0 +1,2 @@
+# Step 3
+Next, take the filename you copied from the previous step and paste it into the blank below (to the right) labeled "FP" Run the code below. After a few moments, it should give a prompt asking where on your computer you wish to download the parquet file.

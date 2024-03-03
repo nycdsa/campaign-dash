@@ -1,0 +1,16 @@
+cfgv==3.4.0
+distlib==0.3.8
+filelock==3.13.1
+identify==2.5.33
+nodeenv==1.8.0
+numpy==1.26.3
+pandas==2.2.0
+platformdirs==4.1.0
+pre-commit==3.6.0
+pyarrow==15.0.0
+python-dateutil==2.8.2
+pytz==2023.3.post1
+PyYAML==6.0.1
+six==1.16.0
+tzdata==2023.4
+virtualenv==20.25.0

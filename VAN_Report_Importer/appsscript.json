@@ -1,0 +1,35 @@
+{
+  "timeZone": "America/New_York",
+  "dependencies": {},
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive",
+    "https://www.googleapis.com/auth/drive.readonly"
+  ],
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "sheets": {
+    "macros": [
+      {
+        "menuName": "Import File",
+        "functionName": "ImportFile"
+      },
+      {
+        "menuName": "setupFiles",
+        "functionName": "setupFiles"
+      },
+      {
+        "menuName": "processContact",
+        "functionName": "processContact"
+      },
+      {
+        "menuName": "processSurvey",
+        "functionName": "processSurvey"
+      },
+      {
+        "menuName": "setupSheet",
+        "functionName": "setupSheet1"
+      }
+    ]
+  }
+}

@@ -1,0 +1,40 @@
+# Google Script Automation Guide for Google Spreadsheets
+Here is a set of instructions that provide a comprehensive guide for using a Google script to automate tasks in a Google Spreadsheet. These instructions cover various aspects, including granting permissions, ensuring security, using a prebuilt spreadsheet, setting up files, configuring the script, and understanding its functionality. By following these instructions, you will be able to effectively utilize the script to streamline your data processing tasks.
+
+1. Security and Permissions:
+   - Use a dedicated Google account for running the script.
+   - Limit sharing of the Google Spreadsheet.
+   - Review the script before running it.
+   - Note: By running the script, you are responsible for any changes it makes to your Google Drive.
+
+2. Granting Permissions:
+   - Click on the button to run the script.
+   - A dialog box will appear, click on the `Continue` button.
+   - Select your Google account.
+   - Review the permissions requested by the script.
+   - If you agree, click on the `Allow` button.
+   - You'll be redirected back to your Google Sheet and the script will run.
+   - Note: By running the script, you are responsible for any changes it makes to your Google Drive.
+
+3. File Setup:
+   - The script checks if a specific folder exists in the same location as the Google Spreadsheet.
+   - If the folder doesn't exist, the script creates it.
+   - Place ZIP files to be processed in this folder.
+
+4. Configuration Sheet:
+   - The Configuration sheet stores various configuration parameters for the script.
+   - It should have the following structure:
+     - Third column: Folder names for file processing.
+     - Fourth column: Data sheet names for processed data.
+     - Fifth column: Header names for data processing.
+   - The script reads values from the third or fourth row of the Configuration sheet based on the active sheet's name.
+   - Ensure the Configuration sheet is properly set up before running the script.
+
+5. Script Functionality:
+- The script performs several operations on a Google Spreadsheet:
+    - Reads information from the first row of the active sheet.
+    - Prepares the active sheet and a specific folder for data processing.
+    - Processes CSV files within ZIP files in the specified folder.
+    - Removes duplicate data from the sheet.
+    - Sorts a summary and updates counts based on duplicates.
+    - Shows a message indicating processing is done.

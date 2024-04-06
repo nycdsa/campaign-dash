@@ -19,6 +19,9 @@ var inputFolder;
 /** @type {Spreadsheet.Drive.Folder} */
 var outputFolder;
 
+/** @type {Spreadsheet.Drive.Folder} */
+var TempFolder;
+
 /** @type {GoogleAppsScript.Spreadsheet.Sheet} */
 var dataSheet;
 
@@ -36,6 +39,7 @@ var debug = false;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function processSheet() {
+
   configSheet =
     SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Configuration");
   additionalColumns = ["Instance of VANID", "Filename", "Date/Time Added"];
@@ -69,6 +73,7 @@ function processSheet() {
   }
   header = Utilities.parseCsv(preprocessCsvData(headerName))[0]; //.replace(/\n/g, "").trim();
   Logger.log(header);
+  TempFolder = setupFiles("TempFolder");
   fullHeader = header.concat(additionalColumns);
   inputFolder = setupFiles(folderName);
   outputFolder = setupFiles(outputFolderName);
@@ -359,36 +364,47 @@ function processCSVFilesInZip(sheet, folder) {
  * @param {boolean} reset
  */
 function processCSVData(sheet, filename_, csvBlob) {
-  +1;
-  var csvData = Utilities.parseCsv(csvBlob.getDataAsString("utf-16"), "\t");
+
+  var config = {
+    name: "[Converted] " + filename_,
+    parents: [TempFolder.getId()],
+    mimeType: MimeType.GOOGLE_SHEETS
+  };
+
+  var newFile  = Drive.Files.create(config, csvBlob,{supportsAllDrives: true});
+
+  var csvData = SpreadsheetApp.openById(newFile.id).getActiveSheet().getDataRange().getValues();
 
   // Get the header values
   var hdr = csvData[0];
+
+  DriveApp.getFileById(newFile.id).setTrashed(true);
 
   if (!compareArrays(hdr, header)) {
     throw new Error(
       "Header does not align with expected output, please check file"
     );
   } else {
+    csvData = csvData.slice(1);
     // Get the data values excluding headers + 1
-    csvData = csvData.slice(1).map((row) => {
-      // Iterate over each cell in the row
-      return row.map((cell, i) => {
-        // If the header of this column contains the word "Date", reformat the cell
-        if (hdr[i].includes("Date")) {
-          var parts = cell.split("-");
-          if (parts.length === 3) {
-            var date = new Date(parts[0], parts[1] - 1, parts[2]);
-            return Utilities.formatDate(date, "America/New_York", "MM/dd/yyyy");
-          } else {
-            return NaN;
-          }
-        } else {
-          // If the header of this column does not contain the word "Date", return the cell as is
-          return cell;
-        }
-      });
-    });
+    // csvData = csvData.slice(1).map((row) => {
+    //   // Iterate over each cell in the row
+    //   return row.map((cell, i) => {
+    //     // If the header of this column contains the word "Date", reformat the cell
+    //     if (hdr[i].includes("Date")) {
+    //       var parts = cell.split("-");
+    //       if (parts.length === 3) {
+    //         var date = new Date(parts[0], parts[1] - 1, parts[2]);
+    //         return Utilities.formatDate(date, "America/New_York", "MM/dd/yyyy");
+    //       } else {
+    //         return NaN;
+    //       }
+    //     } else {
+    //       // If the header of this column does not contain the word "Date", return the cell as is
+    //       return cell;
+    //     }
+    //   });
+    // });
     var dateColumnIndex = hdr.indexOf("Date Canvassed");
     if (dateColumnIndex < 0) {
       throw new Error("Column 'Date Canvassed' not found");

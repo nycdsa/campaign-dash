@@ -339,7 +339,7 @@ function processCSVFilesInZip(sheet, folder) {
 
           // Perform operations on the XLS file
           try {
-            processCSVData(sheet, fileName, innerFile);
+            processCSVData(sheet, file, innerFile);
           } catch (e) {
             addRowsToTable(fileName, null, null, null, e);
           }
@@ -363,22 +363,27 @@ function processCSVFilesInZip(sheet, folder) {
  * @param {string} filename
  * @param {boolean} reset
  */
-function processCSVData(sheet, filename_, csvBlob) {
-
-  var config = {
-    name: "[Converted] " + filename_,
-    parents: [TempFolder.getId()],
-    mimeType: MimeType.GOOGLE_SHEETS
-  };
-
-  var newFile  = Drive.Files.create(config, csvBlob,{supportsAllDrives: true});
-
-  var csvData = SpreadsheetApp.openById(newFile.id).getActiveSheet().getDataRange().getValues();
+function processCSVData(sheet, file, csvBlob) {
+  var csvData = null;
+  var files = TempFolder.getFilesByName(file.getId());
+  if (files.hasNext()) {
+    // Workbook already exists, assign it to a variable
+    csvData = SpreadsheetApp.open(files.next()).getActiveSheet().getDataRange().getValues();
+  } else {
+    var config = {
+      name: file.getId(),
+      parents: [TempFolder.getId()],
+      mimeType: MimeType.GOOGLE_SHEETS
+    };
+    var newFile  = Drive.Files.create(config, csvBlob,{supportsAllDrives: true});
+    csvData = SpreadsheetApp.openById(newFile.id).getActiveSheet().getDataRange().getValues();
+  }
+ 
 
   // Get the header values
   var hdr = csvData[0];
 
-  DriveApp.getFileById(newFile.id).setTrashed(true);
+  //DriveApp.getFileById(newFile.id).setTrashed(true);
 
   if (!compareArrays(hdr, header)) {
     throw new Error(
@@ -425,11 +430,11 @@ function processCSVData(sheet, filename_, csvBlob) {
       "MM/dd/yyyy"
     );
 
-    addRowsToTable(filename_, minRange, maxRange, csvData.length, "OK");
+    addRowsToTable(file.getName(), minRange, maxRange, csvData.length, "OK");
 
     Logger.log(
       "File " +
-        filename_ +
+        file.getName() +
         ", starts on " +
         minRange +
         " and ends on " +
@@ -438,7 +443,7 @@ function processCSVData(sheet, filename_, csvBlob) {
     // Append the imported data to the existing or new sheet
 
     var startRow = sheet.getLastRow() + 1;
-    var filenameArray = Array(csvData.length).fill([filename_]);
+    var filenameArray = Array(csvData.length).fill([file.getName()]);
     var dateTimeCol = Array(csvData.length).fill([
       Utilities.formatDate(new Date(), "America/New_York", "MM/dd/yyyy h:mm a"),
     ]);

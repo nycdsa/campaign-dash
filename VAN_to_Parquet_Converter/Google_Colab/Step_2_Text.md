@@ -1,0 +1,2 @@
+# Step 2
+When the upload completes, look for the filename. It should be under the "Browse" button in **bold**. Highlight all of it. This includes the extension; just don't highlight the "(application/vnd.ms-excel)." Right-click and choose "Copy"

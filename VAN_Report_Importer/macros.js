@@ -95,6 +95,60 @@ function processSheet() {
   }
 }
 
+function countIf(valuesArray) {
+  // Convert startRow to zero-based index
+
+  var returnArray = [];
+  // Get the value to compare from the startRow position
+  var valueToCompare = valuesArray[0];
+  returnArray[0] = 1;
+
+  // Count occurrences of valueToCompare in the array up to the startRow position (inclusive)
+  let count = 0;
+  for (let i = 1; i < valuesArray.length; i++) {
+    if (valuesArray[i] === valueToCompare) {
+      count++;
+    }
+    returnArray[i] = count;
+    valueToCompare = valuesArray[i];
+  }
+
+  return returnArray;
+}
+
+function bindMultipleRows(...arrays) {
+  // Use the reduce method to concatenate all the arrays row-wise
+  return arrays.reduce((acc, array) => acc.concat(array), []);
+}
+
+const arrayColumn = (arr, n) => arr.map((x) => x[n]);
+
+function concatArraysByColumns(...arrays) {
+  // Determine the number of rows and validate the arrays
+  const numRows = arrays[0].length;
+
+  for (let arr of arrays) {
+    if (arr.length !== numRows) {
+      throw new Error("All arrays must have the same length.");
+    }
+  }
+
+  // Initialize the result array
+  const result = Array.from({ length: numRows }, () => []);
+
+  // Concatenate columns
+  for (let arr of arrays) {
+    for (let i = 0; i < numRows; i++) {
+      if (Array.isArray(arr[i])) {
+        result[i] = result[i].concat(arr[i]);
+      } else {
+        result[i].push(arr[i]);
+      }
+    }
+  }
+
+  return result;
+}
 function compareArrays(rangeArray, stringArray) {
   if (rangeArray.length !== stringArray.length) {
     return false;
@@ -316,6 +370,7 @@ function processCSVFilesInZip(sheet, folder) {
   while (filesIterator.hasNext()) {
     files.push(filesIterator.next());
   }
+  var data;
   for (var j = 0; j < files.length; j++) {
     // Update progress after each ZIP file processed
     updateProgress(j, files.length - 1);
@@ -336,11 +391,13 @@ function processCSVFilesInZip(sheet, folder) {
         // Handle specific file types within the ZIP (e.g., XLSX)
         if (innerFileName.endsWith(".xls")) {
           Logger.log("Processing file within ZIP: " + innerFileName);
+          var temp;
 
           // Perform operations on the XLS file
           try {
-            processCSVData(sheet, file, innerFile);
+            processCSVData(sheet, fileName, innerFile);
           } catch (e) {
+            temp = null;
             addRowsToTable(fileName, null, null, null, e);
           }
         } else {
@@ -353,32 +410,19 @@ function processCSVFilesInZip(sheet, folder) {
       }
     }
   }
+  sheet.getActiveSheet().setValues(data);
 }
 /**
  *
  *
- * @param {GoogleAppsScript.Spreadsheet.Sheet} sheet
+ * @param {any[][]} sheet
  * @param {GoogleAppsScript.Base.Blob} csvBlob
  * @param {GoogleAppsScript.Spreadsheet.Sheet} outputSheet
  * @param {string} filename
  * @param {boolean} reset
  */
-function processCSVData(sheet, file, csvBlob) {
-  var csvData = null;
-  var files = TempFolder.getFilesByName(file.getId());
-  if (files.hasNext()) {
-    // Workbook already exists, assign it to a variable
-    csvData = SpreadsheetApp.open(files.next()).getActiveSheet().getDataRange().getValues();
-  } else {
-    var config = {
-      name: file.getId(),
-      parents: [TempFolder.getId()],
-      mimeType: MimeType.GOOGLE_SHEETS
-    };
-    var newFile  = Drive.Files.create(config, csvBlob,{supportsAllDrives: true});
-    csvData = SpreadsheetApp.openById(newFile.id).getActiveSheet().getDataRange().getValues();
-  }
- 
+function processCSVData(sheet, filename_, csvBlob) {
+  var csvData = Utilities.parseCsv(csvBlob.getDataAsString("utf-16"), "\t");
 
   // Get the header values
   var hdr = csvData[0];
@@ -389,31 +433,31 @@ function processCSVData(sheet, file, csvBlob) {
     throw new Error(
       "Header does not align with expected output, please check file"
     );
-  } else {
-    csvData = csvData.slice(1);
-    // Get the data values excluding headers + 1
-    // csvData = csvData.slice(1).map((row) => {
-    //   // Iterate over each cell in the row
-    //   return row.map((cell, i) => {
-    //     // If the header of this column contains the word "Date", reformat the cell
-    //     if (hdr[i].includes("Date")) {
-    //       var parts = cell.split("-");
-    //       if (parts.length === 3) {
-    //         var date = new Date(parts[0], parts[1] - 1, parts[2]);
-    //         return Utilities.formatDate(date, "America/New_York", "MM/dd/yyyy");
-    //       } else {
-    //         return NaN;
-    //       }
-    //     } else {
-    //       // If the header of this column does not contain the word "Date", return the cell as is
-    //       return cell;
-    //     }
-    //   });
-    // });
-    var dateColumnIndex = hdr.indexOf("Date Canvassed");
-    if (dateColumnIndex < 0) {
-      throw new Error("Column 'Date Canvassed' not found");
-    }
+  }
+
+  // Get the data values excluding headers
+  csvData = csvData.slice(1).map((row) => {
+    // Iterate over each cell in the row
+    return row.map((cell, i) => {
+      // If the header of this column contains the word "Date", reformat the cell
+      if (hdr[i].includes("Date")) {
+        var parts = cell.split("-");
+        if (parts.length === 3) {
+          var date = new Date(parts[0], parts[1] - 1, parts[2]);
+          return Utilities.formatDate(date, "America/New_York", "MM/dd/yyyy");
+        } else {
+          return NaN;
+        }
+      } else {
+        // If the header of this column does not contain the word "Date", return the cell as is
+        return cell;
+      }
+    });
+  });
+  var dateColumnIndex = hdr.indexOf("Date Canvassed");
+  if (dateColumnIndex < 0) {
+    throw new Error("Column 'Date Canvassed' not found");
+  }
 
     var dateValues = csvData.map((row) => {
       return new Date(row[dateColumnIndex]);
@@ -442,52 +486,41 @@ function processCSVData(sheet, file, csvBlob) {
     );
     // Append the imported data to the existing or new sheet
 
-    var startRow = sheet.getLastRow() + 1;
-    var filenameArray = Array(csvData.length).fill([file.getName()]);
-    var dateTimeCol = Array(csvData.length).fill([
-      Utilities.formatDate(new Date(), "America/New_York", "MM/dd/yyyy h:mm a"),
-    ]);
+  var startRow = sheet.getLastRow() + 1;
+  var filenameArray = Array(csvData.length).fill([filename_]);
+  var dateTimeCol = Array(csvData.length).fill([
+    Utilities.formatDate(new Date(), "America/New_York", "MM/dd/yyyy h:mm a"),
+  ]);
 
-    sheet
-      .getRange(startRow, 1, csvData.length, csvData[0].length)
-      .setValues(csvData);
+  sheet
+    .getRange(startRow, 1, csvData.length, csvData[0].length)
+    .setValues(csvData);
 
-    var vanidColumn = hdr.indexOf("Voter File VANID");
-    var vanidColumnLetter = sheet
-      .getRange(1, vanidColumn + 1)
-      .getA1Notation()
-      .replace(/[0-9]/g, "");
+  var vanidColumn = hdr.indexOf("Voter File VANID");
+  var vanidColumnLetter = sheet
+    .getRange(1, vanidColumn + 1)
+    .getA1Notation()
+    .replace(/[0-9]/g, "");
 
-    sheet
-      .getRange(
-        startRow,
-        fullHeader.indexOf("Instance of VANID") + 1,
-        csvData.length,
-        1
-      )
-      .setFormula(
-        "=COUNTIF(" +
-          vanidColumnLetter +
-          "$1:" +
-          vanidColumnLetter +
-          startRow.toString() +
-          "," +
-          vanidColumnLetter +
-          startRow.toString() +
-          ")"
-      );
-    sheet
-      .getRange(startRow, fullHeader.indexOf("Filename") + 1, csvData.length, 1)
-      .setValues(filenameArray);
-    sheet
-      .getRange(
-        startRow,
-        fullHeader.indexOf("Date/Time Added") + 1,
-        csvData.length,
-        1
-      )
-      .setValues(dateTimeCol);
-  }
+  sheet
+    .getRange(startRow, sheet.getLastColumn() - 2, csvData.length, 1)
+    .setFormula(
+      "=COUNTIF(" +
+        vanidColumnLetter +
+        "$1:" +
+        vanidColumnLetter +
+        startRow.toString() +
+        "," +
+        vanidColumnLetter +
+        startRow.toString() +
+        ")"
+  );
+  sheet
+    .getRange(startRow, sheet.getLastColumn() - 1, csvData.length, 1)
+    .setValues(filenameArray);
+  sheet
+    .getRange(startRow, sheet.getLastColumn(), csvData.length, 1)
+    .setValues(dateTimeCol);
 }
 /**
  *
